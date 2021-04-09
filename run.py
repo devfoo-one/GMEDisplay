@@ -6,8 +6,8 @@ import yfinance as yf
 
 tz = datetime.datetime.now().astimezone().tzinfo
 
-def main(stdscr):
 
+def main(stdscr):
     last_price = None
     last_volume = None
     last_update = None
@@ -58,6 +58,7 @@ def main(stdscr):
             break
         curses.napms(1000)
 
+
 if __name__ == '__main__':
     stdscr = curses.initscr()
     old_curs = curses.curs_set(0)
@@ -67,7 +68,7 @@ if __name__ == '__main__':
     stdscr.nodelay(True)
     try:
         main(stdscr)
-    except Exception:
+    except KeyboardInterrupt:
         pass
     finally:
         curses.curs_set(old_curs)
