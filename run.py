@@ -1,62 +1,65 @@
 import curses
 import datetime
+import time
 
 import emoji
+import numpy as np
 import yfinance as yf
+from pandas import Series
 
 tz = datetime.datetime.now().astimezone().tzinfo
 
 
+class Ticker():
+
+    def __init__(self, name: str):
+        self.name = name
+        self.last_update = 0
+        self.update()
+
+    def get_trend_emoji(self, data: Series) -> str:
+        a, _ = np.polyfit(data, range(len(data)), 1)
+        if a > 0:
+            return ':up-right_arrow:'
+        elif a < 0:
+            return ':down-right_arrow:'
+        else:
+            return ':right_arrow:'
+
+    def update(self):
+        if abs(self.last_update - time.time()) > 15:
+            self.data = yf.download(tickers=self.name, period='10m', interval='1m', prepost=True, progress=False)
+            self.last_update = time.time()
+
+    def __str__(self):
+        self.update()
+        price = round(self.data['Close'][-1], 2)
+        volume = self.data['Volume'][-2]
+        update = self.data.index[-1]
+        output = "${}: {:.2f}$ {} \t {} {} \t {}".format(
+            self.name,
+            price,
+            self.get_trend_emoji(self.data['Close']),
+            volume,
+            self.get_trend_emoji(self.data['Volume'][:-1]),
+            update.astimezone(tz),
+        )
+        return emoji.emojize(output, use_aliases=True, variant='emoji_type')
+
+
 def main(stdscr):
-    last_price = None
-    last_volume = None
-    last_update = None
+    gme = Ticker('GME')
 
     while True:
 
-        data = yf.download(tickers='GME', period='5m', interval='1m', prepost=True, progress=False)
-        price = round(data['Close'][-1], 2)
-        volume = data['Volume'][-2]
-        update = data.index[-1]
-
-        if last_update != update:
-            if last_price is None:
-                trend_price = ':rocket:'
-            elif last_price < price:
-                trend_price = ':up-right_arrow:'
-            elif last_price > price:
-                trend_price = ':down-right_arrow:'
-            else:
-                trend_price = ':right_arrow:'
-
-            if last_volume is None:
-                trend_volume = ':rocket:'
-            elif last_volume < volume:
-                trend_volume = ':up-right_arrow:'
-            elif last_volume > volume:
-                trend_volume = ':down-right_arrow:'
-            else:
-                trend_volume = ':right_arrow:'
-            last_volume = volume
-
-        last_price = price
-        last_update = update
-
-        output = "$GME: {:.2f}$ {} \t {} {} \t {}".format(
-            price,
-            trend_price,
-            volume,
-            trend_volume,
-            update.astimezone(tz),
-        )
-        output = emoji.emojize(output, use_aliases=True, variant='emoji_type')
+        output = str(gme)
 
         stdscr.clear()
         stdscr.addstr(0, 0, output)
         stdscr.refresh()
         if stdscr.getch() in [ord('q'), ord('Q')]:
             break
-        curses.napms(1000)
+        curses.napms(500)
 
 
 if __name__ == '__main__':

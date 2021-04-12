@@ -1,2 +1,4 @@
 yfinance
 emoji
+pandas
+numpy
