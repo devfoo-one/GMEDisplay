@@ -10,21 +10,41 @@ from pandas import Series
 tz = datetime.datetime.now().astimezone().tzinfo
 
 
+def get_trend_emoji(data: Series) -> str:
+    """
+    Applies a linear regression (ax+b) on the DataSeries and returns an emoji based on a
+    :param data: DataSeries
+    :return: String containing emoji identifier
+    """
+    a, _ = np.polyfit(data, range(len(data)), 1)
+    if a > 0:
+        return ':up-right_arrow:'
+    elif a < 0:
+        return ':down-right_arrow:'
+    else:
+        return ':right_arrow:'
+
+
+def get_change_emoji(data: Series) -> str:
+    """
+    Returns an emoji that symbolizes the difference between the last two elements of the DataSeries
+    :param data: DataSeries
+    :return: String containing emoji identifier
+    """
+    if data[-2] < data[-1]:
+        return ':green_heart:'  # green_circle seems to be not well supported
+    elif data[-2] > data[-1]:
+        return ':red_circle:'
+    else:
+        return ':blue_circle:'
+
+
 class Ticker():
 
     def __init__(self, name: str):
         self.name = name
         self.last_update = 0
         self.update()
-
-    def get_trend_emoji(self, data: Series) -> str:
-        a, _ = np.polyfit(data, range(len(data)), 1)
-        if a > 0:
-            return ':up-right_arrow:'
-        elif a < 0:
-            return ':down-right_arrow:'
-        else:
-            return ':right_arrow:'
 
     def update(self):
         if abs(self.last_update - time.time()) > 15:
@@ -36,14 +56,16 @@ class Ticker():
         price = round(self.data['Close'][-1], 2)
         volume = self.data['Volume'][-2]
         update = self.data.index[-1]
-        output = "${}: {:.2f}$ {} \t {} {} \t {}".format(
-            self.name,
-            price,
-            self.get_trend_emoji(self.data['Close']),
-            volume,
-            self.get_trend_emoji(self.data['Volume'][:-1]),
-            update.astimezone(tz),
-        )
+        output = f"${self.name}:" \
+                 f" {get_change_emoji(self.data['Close'])}" \
+                 f" {price:.2f}$" \
+                 f" {get_trend_emoji(self.data['Close'])}" \
+                 f" \t " \
+                 f" {get_change_emoji(self.data['Volume'][:-1])}" \
+                 f" {volume}" \
+                 f" {get_trend_emoji(self.data['Volume'][:-1])}" \
+                 f" \t" \
+                 f" {update.astimezone(tz)}"
         return emoji.emojize(output, use_aliases=True, variant='emoji_type')
 
 
