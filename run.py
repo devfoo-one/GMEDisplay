@@ -16,7 +16,7 @@ def get_trend_emoji(data: Series) -> str:
     :param data: DataSeries
     :return: String containing emoji identifier
     """
-    a, _ = np.polyfit(data, range(len(data)), 1)
+    a, _ = np.polyfit(range(len(data)), data , 1)
     if a > 0:
         return ':up-right_arrow:'
     elif a < 0:
@@ -48,12 +48,12 @@ class Ticker():
 
     def update(self):
         if abs(self.last_update - time.time()) > 15:
-            self.data = yf.download(tickers=self.name, period='10m', interval='1m', prepost=True, progress=False)
+            self.data = yf.download(tickers=self.name, period='10m', interval='1m', prepost=True, progress=False, rounding=True)
             self.last_update = time.time()
 
     def __str__(self):
         self.update()
-        price = round(self.data['Close'][-1], 2)
+        price = self.data['Close'][-1]
         volume = self.data['Volume'][-2]
         update = self.data.index[-1]
         output = f"${self.name}:" \
